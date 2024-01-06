@@ -1,0 +1,58 @@
+CREATE TABLE BookMaster (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    AuthorName VARCHAR(255) NOT NULL,
+    BookName VARCHAR(255) NOT NULL,
+    PublisherName VARCHAR(255) NOT NULL,
+    PublishDate DATE NOT NULL
+);
+
+-- Create Book Details table
+CREATE TABLE BookDetails (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    BookMasterId INT NOT NULL,
+    SubjectCategory VARCHAR(255) NOT NULL,
+    SubjectSubCategory VARCHAR(255) NOT NULL,
+    Binding ENUM('Hard Cover', 'Paperback') NOT NULL,
+    SearchCriteria JSON,
+    FOREIGN KEY (BookMasterId) REFERENCES BookMaster(id)
+);
+
+-- Stored procedure for inserting book information
+DELIMITER //
+CREATE PROCEDURE InsertBookInformation(
+    IN author_name VARCHAR(255),
+    IN book_name VARCHAR(255),
+    IN publisher_name VARCHAR(255),
+    IN publish_date DATE,
+    IN subject_category VARCHAR(255),
+    IN subject_subcategory VARCHAR(255),
+    IN binding_type ENUM('Hard Cover', 'Paperback')
+)
+BEGIN
+    DECLARE book_master_id INT;
+    
+    -- Insert into BookMaster table
+    INSERT INTO BookMaster (AuthorName, BookName, PublisherName, PublishDate)
+    VALUES (author_name, book_name, publisher_name, publish_date);
+    
+    SET book_master_id = LAST_INSERT_ID();
+    
+    -- Insert into BookDetails table
+    INSERT INTO BookDetails (BookMasterId, SubjectCategory, SubjectSubCategory, Binding)
+    VALUES (book_master_id, subject_category, subject_subcategory, binding_type);
+END //
+DELIMITER ;
+
+-- Stored procedure for searching books
+DELIMITER //
+CREATE PROCEDURE SearchBooksByKeyword(IN search_keyword VARCHAR(255))
+BEGIN
+    SELECT BM.id, BM.AuthorName, BM.BookName, BM.PublisherName, BM.PublishDate, BD.SubjectCategory, BD.SubjectSubCategory, BD.Binding
+    FROM BookMaster BM 
+    JOIN BookDetails BD ON BM.id = BD.BookMasterId
+    WHERE BM.AuthorName LIKE CONCAT('%', search_keyword, '%') OR 
+     BM.BookName LIKE CONCAT('%', search_keyword, '%') OR
+      BM.PublisherName LIKE CONCAT('%', search_keyword, '%') OR
+       BM.PublishDate LIKE CONCAT('%', search_keyword, '%');
+END //
+DELIMITER ;
